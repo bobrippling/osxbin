@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+sub pbpaste
+{
+	return `pbpaste`;
+}
+
+sub sleep_dbl
+{
+	select(undef, undef, undef, shift);
+}
+
+my $x = '';
+
+while(1){
+	my $y = pbpaste();
+
+	if(!($x eq $y)){
+		$x = $y;
+		print "$x\n";
+	}
+	sleep_dbl(0.1);
+}

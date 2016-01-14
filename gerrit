@@ -1,0 +1,17 @@
+#!/bin/sh
+
+git remote -v \
+	| grep origin \
+	| head -1 \
+	| awk '{print $2}' \
+	| sed 's;.*://@*\([^:]*\)\(:\([^/]*\)\)*/.*;\1 \3;' \
+	| (
+		read host port
+
+		if [ -n "$port" ]
+		then portarg="-p $port"
+		else portarg=
+		fi
+
+		ssh $portarg "$host" gerrit "$@"
+	)
