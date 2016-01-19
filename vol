@@ -33,6 +33,8 @@ interactive(){
 		}elsif($x eq "\4"){
 			# ctrl-d
 			last;
+		}elsif($x eq "q"){
+			last;
 		}else{
 			print "ignoring \"$x\"\n";
 			next;
