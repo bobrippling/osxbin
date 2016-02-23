@@ -103,9 +103,40 @@ static int vol_get(void)
 	return (left + right) / 2;
 }
 
+static void interactive(void)
+{
+	system("stty -echo -icanon");
+
+	int vol = vol_get();
+	for(;;){
+		printf("j/k: %d%% \r", vol);
+
+		int ch = getchar();
+
+		switch(ch){
+			case EOF:
+			case 'q':
+			case 4: /* ctrl-d */
+				return;
+
+			case 'k':
+				vol_set(++vol);
+				break;
+			case 'j':
+				vol_set(--vol);
+				break;
+		}
+	}
+}
+
 int main(int argc, const char *argv[])
 {
 	if(argc == 2){
+		if(!strcmp(argv[1], "-i")){
+			interactive();
+			return 0;
+		}
+
 		char *end;
 		int vol = strtol(argv[1], &end, 0);
 
