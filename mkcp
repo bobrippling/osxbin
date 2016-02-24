@@ -1,0 +1,52 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+
+sub basename
+{
+	my $x = shift;
+	return $1 if $x =~ m!.*/([^/]+)$!;
+	return $x;
+}
+
+my $this = basename($0);
+my $exe;
+if($this eq 'mkmv'){
+	$exe = 'mv';
+}elsif($this eq 'mkcp'){
+	$exe = 'cp';
+}else{
+	die "$0: not invoked as mkmv or mkcp\n";
+}
+
+use constant {
+	EISDIR => 21,
+	EEXIST => 17,
+};
+
+sub mkdir_p
+{
+	my @paths = split m;/;, shift;
+
+	my $sofar = '';
+	for(@paths){
+		$sofar .= "$_/";
+		if(!mkdir $sofar){
+			if($! != EISDIR && $! != EEXIST){
+				die "mkdir '$sofar': $!"
+			}
+		}
+	}
+}
+
+if(@ARGV < 2){
+	print STDERR "Usage: $0 files... dir";
+	exit 1;
+}
+
+my $dir = pop @ARGV;
+
+mkdir_p $dir;
+
+exec $exe, @ARGV, $dir;
+die "exec mv: $!";
