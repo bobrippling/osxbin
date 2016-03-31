@@ -8,7 +8,6 @@ else
 		p|t) mpc -q toggle ;;
 		s) mpc -q stop ;;
 		n) mpc -q next ;;
-		p) mpc -q prev ;;
 		*) mpc "$@" ;;
 	esac
 fi
