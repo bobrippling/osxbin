@@ -11,6 +11,7 @@ static noreturn void die(const char *fmt, ...)
 	va_start(l, fmt);
 	vfprintf(stderr, fmt, l);
 	va_end(l);
+	fputc('\n', stderr);
 	exit(1);
 }
 
