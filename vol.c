@@ -145,7 +145,7 @@ int main(int argc, const char *argv[])
 		int vol = strtol(argv[1], &end, 0);
 
 		if(*end)
-			die("invalid number '%s'", argv[1]);
+			die("%s: invalid number '%s'", argv[0], argv[1]);
 
 		vol_set(vol);
 		return 0;
