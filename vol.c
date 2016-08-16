@@ -155,6 +155,6 @@ int main(int argc, const char *argv[])
 		return 0;
 
 	}else{
-		die("Usage: %s [volume-to-set]", argv[0]);
+		die("Usage: %s [-i | volume-to-set]", argv[0]);
 	}
 }
