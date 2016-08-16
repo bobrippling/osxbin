@@ -119,6 +119,9 @@ static void interactive(void)
 			case 'q':
 			case 4: /* ctrl-d */
 				return;
+			case 12: /* ctrl-l */
+				system("clear");
+				break;
 
 			case 'k':
 				vol_set(++vol);
