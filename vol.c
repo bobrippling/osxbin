@@ -81,7 +81,7 @@ static int vol_get_channel(AudioDeviceID id, AudioObjectPropertyElement channel)
 			0, NULL,
 			&len, &volume);
 
-	checkHWError(result, "error setting volume");
+	checkHWError(result, "error getting volume");
 
 	return volume * 100;
 }
