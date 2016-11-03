@@ -123,6 +123,11 @@ static void interactive(void)
 				system("clear");
 				break;
 
+			case 'r':
+			case 'o':
+				vol = vol_get();
+				break;
+
 			case 'k':
 				vol_set(++vol);
 				break;
