@@ -1,15 +1,15 @@
 #!/bin/sh
 
-if test $# -eq 0
+if test $# -ne 1
 then
-	echo >&2 "Usage: $0 safe-windows..."
+	echo >&2 "Usage: $0 path/to/safe/file"
 	exit 1
 fi
 
 poll_delay=10
 timeout_delay=50
 
-okay="$@"
+safe_file="$2"
 
 session=$(tmux list-sessions | head -1 | cut -d: -f1)
 
@@ -44,6 +44,8 @@ do
 
 	# tmux list-windows
 	win_num=$(tmux_list_clients '#I')
+
+	okay="$(cat "$safe_file")"
 
 	if ! win_num_in "$win_num" "$okay"
 	then
