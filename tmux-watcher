@@ -6,8 +6,8 @@ then
 	exit 1
 fi
 
-poll_delay=5
-timeout_delay=25
+poll_delay=10
+timeout_delay=50
 
 okay="$@"
 
