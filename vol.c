@@ -3,6 +3,8 @@
 
 #include <CoreAudio/CoreAudio.h>
 
+enum { VOL_STEP = 2 };
+
 enum { LEFT_CHANNEL = 1, RIGHT_CHANNEL = 2 };
 
 static noreturn void die(const char *fmt, ...)
@@ -144,6 +146,12 @@ int main(int argc, const char *argv[])
 		if(!strcmp(argv[1], "-i")){
 			interactive();
 			return 0;
+		}else if(!strcmp(argv[1], "+")){
+			vol_set(vol_get() + VOL_STEP);
+			return 0;
+		}else if(!strcmp(argv[1], "-")){
+			vol_set(vol_get() - VOL_STEP);
+			return 0;
 		}
 
 		char *end;
@@ -160,6 +168,6 @@ int main(int argc, const char *argv[])
 		return 0;
 
 	}else{
-		die("Usage: %s [-i | volume-to-set]", argv[0]);
+		die("Usage: %s [+ | - | -i | volume-to-set]", argv[0]);
 	}
 }
