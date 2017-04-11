@@ -121,6 +121,7 @@ static void interactive(void)
 			case 'q':
 			case 4: /* ctrl-d */
 				return;
+
 			case 12: /* ctrl-l */
 				system("clear");
 				break;
@@ -140,17 +141,22 @@ static void interactive(void)
 	}
 }
 
+static bool is_all(const char *str, const char *set)
+{
+	return strspn(str, set) == strlen(str);
+}
+
 int main(int argc, const char *argv[])
 {
 	if(argc == 2){
 		if(!strcmp(argv[1], "-i")){
 			interactive();
 			return 0;
-		}else if(!strcmp(argv[1], "+")){
-			vol_set(vol_get() + VOL_STEP);
+		}else if(is_all(argv[1], "+")){
+			vol_set(vol_get() + VOL_STEP * (int)strlen(argv[1]));
 			return 0;
-		}else if(!strcmp(argv[1], "-")){
-			vol_set(vol_get() - VOL_STEP);
+		}else if(is_all(argv[1], "-")){
+			vol_set(vol_get() - VOL_STEP * (int)strlen(argv[1]));
 			return 0;
 		}
 
