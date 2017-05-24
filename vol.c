@@ -7,6 +7,8 @@ enum { VOL_STEP = 2 };
 
 enum { LEFT_CHANNEL = 1, RIGHT_CHANNEL = 2 };
 
+static const char *argv0;
+
 static noreturn void die(const char *fmt, ...)
 {
 	va_list l;
@@ -141,39 +143,50 @@ static void interactive(void)
 	}
 }
 
-static bool is_all(const char *str, const char *set)
+static bool is_all(const char *str, const char ch)
 {
-	return strspn(str, set) == strlen(str);
+	return strspn(str, (const char[]){ ch, '\0' }) == strlen(str);
+}
+
+static int estrtol(const char *str)
+{
+	char *end;
+	int vol = strtol(str, &end, 0);
+
+	if(*end)
+		die("%s: invalid number '%s'", argv0, str);
+
+	return vol;
 }
 
 int main(int argc, const char *argv[])
 {
+	argv0 = argv[0];
+
 	if(argc == 2){
 		if(!strcmp(argv[1], "-i")){
 			interactive();
-			return 0;
-		}else if(is_all(argv[1], "+")){
-			vol_set(vol_get() + VOL_STEP * (int)strlen(argv[1]));
-			return 0;
-		}else if(is_all(argv[1], "-")){
-			vol_set(vol_get() - VOL_STEP * (int)strlen(argv[1]));
-			return 0;
+		}else if(strchr("+-", argv[1][0])){
+			int direction = argv[1][0] == '+' ? 1 : -1;
+
+			if(is_all(argv[1], argv[1][0])){
+				vol_set(vol_get() + direction * VOL_STEP * (int)strlen(argv[1]));
+			}else{
+				vol_set(vol_get() + direction * estrtol(argv[1] + 1));
+			}
+		}else{
+			vol_set(estrtol(argv[1]));
 		}
-
-		char *end;
-		int vol = strtol(argv[1], &end, 0);
-
-		if(*end)
-			die("%s: invalid number '%s'", argv[0], argv[1]);
-
-		vol_set(vol);
-		return 0;
-
 	}else if(argc <= 1){
 		printf("%d\n", vol_get());
-		return 0;
 
 	}else{
-		die("Usage: %s [+ | - | -i | volume-to-set]", argv[0]);
+		die("Usage: %s [+... | -... | -i | volume-to-set]\n"
+				" e.g. %s +++\n",
+				"      %s -20\n",
+				"      %s 31\n",
+				argv[0]);
 	}
+
+	return 0;
 }
