@@ -1,0 +1,112 @@
+#!/usr/bin/env python
+
+import sys
+import subprocess
+import re
+from signal import signal, SIGPIPE, SIG_DFL
+
+signal(SIGPIPE, SIG_DFL)
+
+calendars = {}
+category_default = 'DEFAULT'
+
+re_ics = re.compile('SUMMARY|DTSTAMP|CATEGORIES')
+re_fields = re.compile('^([^;:]+)[^:]*:(.*)')
+re_date = re.compile('^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$')
+
+arg_calendar = None
+arg_date_raw = None
+
+def usage(extra):
+    argv0 = re.sub('.*/', '', sys.argv[0])
+    print >>sys.stderr, "Usage: {} [-c calendar] [YYYY[-MM[-DD]]]".format(argv0)
+    print >>sys.stderr, extra
+    sys.exit(2)
+
+for i in range(1, len(sys.argv)):
+    arg = sys.argv[i]
+    if arg == '-c':
+        i += 1
+        if i == len(sys.argv):
+            usage("need argument for -c")
+        calendar = sys.argv[i]
+    elif arg_date_raw is None:
+        arg_date_raw = arg
+    else:
+        usage('unexpected argument "{}"'.format(arg))
+
+arg_y = arg_m = arg_d = None
+if arg_date_raw:
+    match = re.match('(\d{4})(-(\d{2})(-(\d{2}))?)?$', arg_date_raw)
+    if not match:
+        usage('invalid date "{}"'.format(arg_date_raw))
+    arg_y = match.group(1)
+    arg_m = match.group(3)
+    arg_d = match.group(5)
+
+def parse_date(s):
+    fields = re_date.split(s)
+
+    y = fields[1]
+    m = fields[2]
+    d = fields[3]
+    hr = fields[4]
+    min = fields[5]
+    sec = fields[6]
+
+    when = '{}-{}-{} {}:{}:{}'.format(y, m, d, hr, min, sec)
+    return when, y, m, d, hr, min, sec
+
+def match(a, b):
+    return a is None or b is None or a == b
+
+class Calendar:
+    def __init__(self, name):
+        self.entries = []
+        self.name = name
+
+    def add_entry(self, entry):
+        self.entries.append(entry)
+
+class Entry:
+    def __init__(self, kvs):
+        self.when, self.y, self.m, self.d, \
+                self.hr, self.min, self.sec = parse_date(kvs['DTSTAMP'])
+        self.summary = kvs['SUMMARY']
+
+    def __str__(self):
+        return "{} {}".format(self.when, self.summary)
+
+    def on_day(self, y, m, d):
+        return match(y, self.y) and \
+            match(m, self.m) and \
+            match(d, self.d)
+
+files = subprocess.check_output(
+        "find ~/Library/Calendars -iname '*.ics'",
+        shell=True)
+
+for fname in filter(len, files.split('\n')):
+    with open(fname, 'r') as f:
+        lines = filter(lambda line: re_ics.match(line), f.readlines())
+
+        entries = {}
+        for line in lines:
+            fields = re_fields.split(line.replace('\r', '').replace('\n', ''))
+            entries[fields[1]] = fields[2]
+
+        key = entries.get('CATEGORIES', None) or category_default
+        cal = calendars.get(key, None)
+        if cal is None:
+            cal = Calendar(key)
+            calendars[key] = cal
+
+        cal.add_entry(Entry(entries))
+
+for cal in calendars.values():
+    if arg_calendar and cal.name != arg_calendar:
+        continue
+
+    for entry in cal.entries:
+        if entry.on_day(arg_y, arg_m, arg_d):
+            print entry
