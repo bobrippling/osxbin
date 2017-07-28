@@ -18,5 +18,5 @@ case "$arg" in
 		;;
 	s) mpc -q stop "$@" ;;
 	n) mpc -q next "$@" ;;
-	*) mpc "$arg" "$@" ;;
+	*) mpc -q "$arg" "$@" ;;
 esac
