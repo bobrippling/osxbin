@@ -1,8 +1,22 @@
 #!/usr/bin/perl
 
+sub usage
+{
+	die "Usage: $0 [command]\n";
+}
+
+my $cmd;
+if(@ARGV == 1){
+	$cmd = $ARGV[0];
+}elsif(@ARGV == 0){
+	$cmd = 'pbpaste';
+}else{
+	usage();
+}
+
 sub pbpaste
 {
-	return `pbpaste`;
+	return `$cmd`;
 }
 
 sub sleep_dbl
