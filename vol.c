@@ -143,9 +143,129 @@ static void interactive(void)
 	}
 }
 
+static void dieIfErr(int ec)
+{
+	if(ec == noErr)
+		return;
+	die("%s: error", argv0);
+}
+
+static void set_output(AudioObjectID id)
+{
+	dieIfErr(
+			AudioObjectSetPropertyData(
+				kAudioObjectSystemObject,
+				&(const AudioObjectPropertyAddress){
+					.mSelector = kAudioHardwarePropertyDefaultOutputDevice,
+					.mScope = kAudioObjectPropertyScopeGlobal,
+					.mElement = kAudioObjectPropertyElementMaster,
+				},
+				0,
+				NULL,
+				sizeof(id),
+				&id));
+}
+
+static AudioObjectID get_output(void)
+{
+	AudioObjectID id;
+
+	dieIfErr(
+			AudioObjectGetPropertyData(
+				kAudioObjectSystemObject,
+				&(const AudioObjectPropertyAddress){
+					.mSelector = kAudioHardwarePropertyDefaultOutputDevice,
+					.mScope = kAudioObjectPropertyScopeGlobal,
+					.mElement = kAudioObjectPropertyElementMaster,
+				},
+				0,
+				NULL,
+				&(UInt32){ sizeof(id) },
+				&id));
+
+	return id;
+}
+
+static AudioObjectID *list_devices(size_t *const count)
+{
+	const AudioObjectPropertyAddress global_master_addr = {
+		.mSelector = kAudioHardwarePropertyDevices,
+		.mScope = kAudioObjectPropertyScopeGlobal,
+		.mElement = kAudioObjectPropertyElementMaster,
+	};
+	UInt32 global_master_count;
+	dieIfErr(AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &global_master_addr, 0, NULL, &global_master_count));
+
+	size_t dev_count = global_master_count / sizeof(AudioDeviceID);
+	AudioObjectID *device_ids = calloc(dev_count, sizeof(AudioDeviceID));
+
+	if(!device_ids)
+		die("out of memory\n");
+
+	dieIfErr(AudioObjectGetPropertyData(kAudioObjectSystemObject, &global_master_addr, 0, NULL, &global_master_count, device_ids));
+
+	*count = dev_count;
+	return device_ids;
+}
+
+static void free_devices(AudioObjectID *devices)
+{
+	free(devices);
+}
+
+static void list(void)
+{
+	size_t n;
+	AudioObjectID *devices = list_devices(&n);
+
+	for(size_t i = 0; i < n; i++){
+		const AudioObjectID id = devices[i];
+
+		const AudioObjectPropertyAddress name_addr = {
+			.mSelector = kAudioDevicePropertyDeviceName,
+			.mScope = kAudioObjectPropertyScopeGlobal,
+			.mElement = kAudioObjectPropertyElementMaster,
+		};
+		char deviceName[64];
+		dieIfErr(AudioObjectGetPropertyData(id, &name_addr, 0, NULL, &(UInt32){ sizeof(deviceName) }, deviceName));
+
+		printf("%s device %d: %s\n", id == get_output() ? "*" : "-", id, deviceName);
+	}
+
+	free_devices(devices);
+}
+
+static void toggle(void)
+{
+	const AudioDeviceID id = get_output();
+	size_t n;
+	AudioObjectID *devices = list_devices(&n);
+
+	if(n < 2)
+		die("%s: only found a single device", __func__);
+
+	for(size_t i = 0; i < n; i++){
+		if(devices[i] == id){
+			if(i + 1 == n){
+				set_output(devices[0]);
+			}else{
+				set_output(devices[i + 1]);
+			}
+			break;
+		}
+	}
+
+	free_devices(devices);
+}
+
 static bool is_all(const char *str, const char ch)
 {
 	return strspn(str, (const char[]){ ch, '\0' }) == strlen(str);
+}
+
+static bool is_prefix(const char *pre, const char *full)
+{
+	return pre[0] && !strncmp(pre, full, strlen(pre));
 }
 
 static int estrtol(const char *str)
@@ -166,6 +286,11 @@ int main(int argc, const char *argv[])
 	if(argc == 2){
 		if(!strcmp(argv[1], "-i")){
 			interactive();
+		}else if(is_prefix(argv[1], "toggle")){
+			toggle();
+		}else if(is_prefix(argv[1], "list") || is_prefix(argv[1], "ls")){
+			list();
+
 		}else if(strchr("+-", argv[1][0])){
 			int direction = argv[1][0] == '+' ? 1 : -1;
 
@@ -181,7 +306,7 @@ int main(int argc, const char *argv[])
 		printf("%d\n", vol_get());
 
 	}else{
-		die("Usage: %s [+... | -... | -i | volume-to-set]\n"
+		die("Usage: %s [+... | -... | -i | t[oggle] | l[ist|s] | volume-to-set]\n"
 				" e.g. %s +++\n",
 				"      %s -20\n",
 				"      %s 31\n",
