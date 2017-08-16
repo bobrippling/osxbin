@@ -27,26 +27,72 @@ static void checkHWError(OSStatus result, const char *desc)
 	die("%s: %d", desc, (int)result);
 }
 
-static AudioDeviceID deviceID(void)
+static AudioDeviceID output_id_get(void)
 {
-	AudioObjectPropertyAddress getDefaultOutputDevicePropertyAddress = {
-		kAudioHardwarePropertyDefaultOutputDevice,
-		kAudioObjectPropertyScopeGlobal,
-		kAudioObjectPropertyElementMaster
+	AudioDeviceID id;
+
+	checkHWError(
+			AudioObjectGetPropertyData(
+				kAudioObjectSystemObject,
+				&(const AudioObjectPropertyAddress){
+					kAudioHardwarePropertyDefaultOutputDevice,
+					kAudioObjectPropertyScopeGlobal,
+					kAudioObjectPropertyElementMaster
+				},
+				0,
+				NULL,
+				&(UInt32){ sizeof(id) }, &id),
+			"error getting output device");
+
+	return id;
+}
+
+static void output_id_set(AudioObjectID id)
+{
+	checkHWError(
+			AudioObjectSetPropertyData(
+				kAudioObjectSystemObject,
+				&(const AudioObjectPropertyAddress){
+					.mSelector = kAudioHardwarePropertyDefaultOutputDevice,
+					.mScope = kAudioObjectPropertyScopeGlobal,
+					.mElement = kAudioObjectPropertyElementMaster,
+				},
+				0,
+				NULL,
+				sizeof(id),
+				&id),
+			"error setting output device");
+}
+
+static AudioObjectID *list_devices(size_t *const count)
+{
+	const AudioObjectPropertyAddress global_master_addr = {
+		.mSelector = kAudioHardwarePropertyDevices,
+		.mScope = kAudioObjectPropertyScopeGlobal,
+		.mElement = kAudioObjectPropertyElementMaster,
 	};
+	UInt32 global_master_count;
+	checkHWError(
+			AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &global_master_addr, 0, NULL, &global_master_count),
+			"error getting device list");
 
-	AudioDeviceID defaultOutputDeviceID;
-	UInt32 volumedataSize = sizeof(defaultOutputDeviceID);
+	size_t dev_count = global_master_count / sizeof(AudioDeviceID);
+	AudioObjectID *device_ids = calloc(dev_count, sizeof(AudioDeviceID));
 
-	OSStatus result = AudioObjectGetPropertyData(
-			kAudioObjectSystemObject,
-			&getDefaultOutputDevicePropertyAddress,
-			0, NULL,
-			&volumedataSize, &defaultOutputDeviceID);
+	if(!device_ids)
+		die("out of memory\n");
 
-	checkHWError(result, "error getting output device");
+	checkHWError(
+			AudioObjectGetPropertyData(kAudioObjectSystemObject, &global_master_addr, 0, NULL, &global_master_count, device_ids),
+			"error getting device list");
 
-	return defaultOutputDeviceID;
+	*count = dev_count;
+	return device_ids;
+}
+
+static void free_devices(AudioObjectID *devices)
+{
+	free(devices);
 }
 
 static void vol_set_channel(AudioDeviceID id, AudioObjectPropertyElement channel, int new_vol)
@@ -92,7 +138,7 @@ static int vol_get_channel(AudioDeviceID id, AudioObjectPropertyElement channel)
 
 static void vol_set(int new)
 {
-	AudioDeviceID id = deviceID();
+	AudioDeviceID id = output_id_get();
 
 	vol_set_channel(id, LEFT_CHANNEL, new);
 	vol_set_channel(id, RIGHT_CHANNEL, new);
@@ -100,7 +146,7 @@ static void vol_set(int new)
 
 static int vol_get(void)
 {
-	AudioDeviceID id = deviceID();
+	AudioDeviceID id = output_id_get();
 
 	int left = vol_get_channel(id, LEFT_CHANNEL);
 	int right = vol_get_channel(id, RIGHT_CHANNEL);
@@ -143,76 +189,6 @@ static void interactive(void)
 	}
 }
 
-static void dieIfErr(int ec)
-{
-	if(ec == noErr)
-		return;
-	die("%s: error", argv0);
-}
-
-static void set_output(AudioObjectID id)
-{
-	dieIfErr(
-			AudioObjectSetPropertyData(
-				kAudioObjectSystemObject,
-				&(const AudioObjectPropertyAddress){
-					.mSelector = kAudioHardwarePropertyDefaultOutputDevice,
-					.mScope = kAudioObjectPropertyScopeGlobal,
-					.mElement = kAudioObjectPropertyElementMaster,
-				},
-				0,
-				NULL,
-				sizeof(id),
-				&id));
-}
-
-static AudioObjectID get_output(void)
-{
-	AudioObjectID id;
-
-	dieIfErr(
-			AudioObjectGetPropertyData(
-				kAudioObjectSystemObject,
-				&(const AudioObjectPropertyAddress){
-					.mSelector = kAudioHardwarePropertyDefaultOutputDevice,
-					.mScope = kAudioObjectPropertyScopeGlobal,
-					.mElement = kAudioObjectPropertyElementMaster,
-				},
-				0,
-				NULL,
-				&(UInt32){ sizeof(id) },
-				&id));
-
-	return id;
-}
-
-static AudioObjectID *list_devices(size_t *const count)
-{
-	const AudioObjectPropertyAddress global_master_addr = {
-		.mSelector = kAudioHardwarePropertyDevices,
-		.mScope = kAudioObjectPropertyScopeGlobal,
-		.mElement = kAudioObjectPropertyElementMaster,
-	};
-	UInt32 global_master_count;
-	dieIfErr(AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &global_master_addr, 0, NULL, &global_master_count));
-
-	size_t dev_count = global_master_count / sizeof(AudioDeviceID);
-	AudioObjectID *device_ids = calloc(dev_count, sizeof(AudioDeviceID));
-
-	if(!device_ids)
-		die("out of memory\n");
-
-	dieIfErr(AudioObjectGetPropertyData(kAudioObjectSystemObject, &global_master_addr, 0, NULL, &global_master_count, device_ids));
-
-	*count = dev_count;
-	return device_ids;
-}
-
-static void free_devices(AudioObjectID *devices)
-{
-	free(devices);
-}
-
 static void list(void)
 {
 	size_t n;
@@ -227,9 +203,11 @@ static void list(void)
 			.mElement = kAudioObjectPropertyElementMaster,
 		};
 		char deviceName[64];
-		dieIfErr(AudioObjectGetPropertyData(id, &name_addr, 0, NULL, &(UInt32){ sizeof(deviceName) }, deviceName));
+		checkHWError(
+				AudioObjectGetPropertyData(id, &name_addr, 0, NULL, &(UInt32){ sizeof(deviceName) }, deviceName),
+				"error getting device name");
 
-		printf("%s device %d: %s\n", id == get_output() ? "*" : "-", id, deviceName);
+		printf("%s device %d: %s\n", id == output_id_get() ? "*" : "-", id, deviceName);
 	}
 
 	free_devices(devices);
@@ -237,7 +215,7 @@ static void list(void)
 
 static void toggle(void)
 {
-	const AudioDeviceID id = get_output();
+	const AudioDeviceID id = output_id_get();
 	size_t n;
 	AudioObjectID *devices = list_devices(&n);
 
@@ -247,9 +225,9 @@ static void toggle(void)
 	for(size_t i = 0; i < n; i++){
 		if(devices[i] == id){
 			if(i + 1 == n){
-				set_output(devices[0]);
+				output_id_set(devices[0]);
 			}else{
-				set_output(devices[i + 1]);
+				output_id_set(devices[i + 1]);
 			}
 			break;
 		}
