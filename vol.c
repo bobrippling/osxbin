@@ -172,6 +172,31 @@ static int interactive_getchar(bool *const done)
 	return ch;
 }
 
+static void interactive_num(int ch, int *const vol, bool *const done)
+{
+	char buf[4] = { 0 };
+	int i = 0;
+
+	for(;;){
+		buf[i++] = ch;
+		if(i == sizeof(buf) - 1)
+			break;
+		if(!isdigit(ch)){
+			buf[i-1] = '\0';
+			break;
+		}
+
+		printf("%s           \r", buf);
+		fflush(stdout);
+
+		ch = interactive_getchar(done);
+		if(*done)
+			return;
+	}
+
+	*vol = atoi(buf);
+}
+
 static void interactive(void)
 {
 	system("stty -echo -icanon");
@@ -188,6 +213,17 @@ static void interactive(void)
 		switch(ch){
 			case 12: /* ctrl-l */
 				system("clear");
+				break;
+
+			case '0':
+				vol_set(vol = 0);
+				break;
+
+			case '1' ... '9':
+				interactive_num(ch, &vol, &done);
+				if(done)
+					return;
+				vol_set(vol);
 				break;
 
 			case 'r':
