@@ -154,6 +154,24 @@ static int vol_get(void)
 	return (left + right) / 2;
 }
 
+static int interactive_getchar(bool *const done)
+{
+	int ch = getchar();
+
+	switch(ch){
+		case EOF:
+		case 'q':
+		case 4: /* ctrl-d */
+			*done = true;
+			break;
+		default:
+			*done = false;
+			break;
+	}
+
+	return ch;
+}
+
 static void interactive(void)
 {
 	system("stty -echo -icanon");
@@ -162,14 +180,12 @@ static void interactive(void)
 	for(;;){
 		printf("j/k: %d%% \r", vol);
 
-		int ch = getchar();
+		bool done;
+		int ch = interactive_getchar(&done);
+		if(done)
+			return;
 
 		switch(ch){
-			case EOF:
-			case 'q':
-			case 4: /* ctrl-d */
-				return;
-
 			case 12: /* ctrl-l */
 				system("clear");
 				break;
