@@ -9,6 +9,9 @@ enum { LEFT_CHANNEL = 1, RIGHT_CHANNEL = 2 };
 
 static const char *argv0;
 
+#ifdef __GNUC__
+__attribute__((format(printf, 1, 2)))
+#endif
 static noreturn void die(const char *fmt, ...)
 {
 	va_list l;
@@ -337,9 +340,13 @@ int main(int argc, const char *argv[])
 
 	}else{
 		die("Usage: %s [+... | -... | -i | t[oggle] | l[ist|s] | volume-to-set]\n"
-				" e.g. %s +++\n",
-				"      %s -20\n",
-				"      %s 31\n",
+				"  e.g. %s +++\n"
+				"       %s -20\n"
+				"       %s 31\n"
+				,
+				argv[0],
+				argv[0],
+				argv[0],
 				argv[0]);
 	}
 
