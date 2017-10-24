@@ -290,6 +290,10 @@ static void interactive(void)
 				vol = vol_get();
 				break;
 
+			case 't':
+				toggle();
+				break;
+
 			case 'k':
 				vol_set(++vol);
 				break;
