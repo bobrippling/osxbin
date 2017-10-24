@@ -200,50 +200,6 @@ static void interactive_num(int ch, int *const vol, bool *const done)
 	*vol = atoi(buf);
 }
 
-static void interactive(void)
-{
-	system("stty -echo -icanon");
-
-	int vol = vol_get();
-	for(;;){
-		printf("j/k: %d%% \r", vol);
-
-		bool done;
-		int ch = interactive_getchar(&done);
-		if(done)
-			return;
-
-		switch(ch){
-			case 12: /* ctrl-l */
-				system("clear");
-				break;
-
-			case '0':
-				vol_set(vol = 0);
-				break;
-
-			case '1' ... '9':
-				interactive_num(ch, &vol, &done);
-				if(done)
-					return;
-				vol_set(vol);
-				break;
-
-			case 'r':
-			case 'o':
-				vol = vol_get();
-				break;
-
-			case 'k':
-				vol_set(++vol);
-				break;
-			case 'j':
-				vol_set(--vol);
-				break;
-		}
-	}
-}
-
 static void list(void)
 {
 	size_t n;
@@ -289,6 +245,50 @@ static void toggle(void)
 	}
 
 	free_devices(devices);
+}
+
+static void interactive(void)
+{
+	system("stty -echo -icanon");
+
+	int vol = vol_get();
+	for(;;){
+		printf("j/k: %d%% \r", vol);
+
+		bool done;
+		int ch = interactive_getchar(&done);
+		if(done)
+			return;
+
+		switch(ch){
+			case 12: /* ctrl-l */
+				system("clear");
+				break;
+
+			case '0':
+				vol_set(vol = 0);
+				break;
+
+			case '1' ... '9':
+				interactive_num(ch, &vol, &done);
+				if(done)
+					return;
+				vol_set(vol);
+				break;
+
+			case 'r':
+			case 'o':
+				vol = vol_get();
+				break;
+
+			case 'k':
+				vol_set(++vol);
+				break;
+			case 'j':
+				vol_set(--vol);
+				break;
+		}
+	}
 }
 
 static bool is_all(const char *str, const char ch)
