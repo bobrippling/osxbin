@@ -254,11 +254,15 @@ static void toggle(void)
 
 static void interactive(void)
 {
+	const char clrtoeol[] = "\x1b[K";
 	system("stty -echo -icanon");
 
 	int vol = vol_get();
 	for(;;){
-		printf("j/k: %d%% \r", vol);
+		char deviceName[64];
+		output_desc(output_id_get(), deviceName, sizeof(deviceName));
+
+		printf("j/k: %d%% %s%s\r", vol, deviceName, clrtoeol);
 
 		bool done;
 		int ch = interactive_getchar(&done);
