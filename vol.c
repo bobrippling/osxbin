@@ -7,6 +7,8 @@ enum { VOL_STEP = 2 };
 
 enum { LEFT_CHANNEL = 1, RIGHT_CHANNEL = 2 };
 
+static const char clrtoeol[] = "\x1b[K";
+
 static const char *argv0;
 
 #ifdef __GNUC__
@@ -189,7 +191,7 @@ static void interactive_num(int ch, int *const vol, bool *const done)
 			break;
 		}
 
-		printf("%s           \r", buf);
+		printf("%s%s\r", buf, clrtoeol);
 		fflush(stdout);
 
 		ch = interactive_getchar(done);
@@ -254,7 +256,6 @@ static void toggle(void)
 
 static void interactive(void)
 {
-	const char clrtoeol[] = "\x1b[K";
 	system("stty -echo -icanon");
 
 	int vol = vol_get();
