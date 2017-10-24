@@ -200,6 +200,18 @@ static void interactive_num(int ch, int *const vol, bool *const done)
 	*vol = atoi(buf);
 }
 
+static void output_desc(const AudioObjectID id, char *buf, size_t bufsiz)
+{
+	const AudioObjectPropertyAddress name_addr = {
+		.mSelector = kAudioDevicePropertyDeviceName,
+		.mScope = kAudioObjectPropertyScopeGlobal,
+		.mElement = kAudioObjectPropertyElementMaster,
+	};
+	checkHWError(
+			AudioObjectGetPropertyData(id, &name_addr, 0, NULL, &(UInt32){ bufsiz }, buf),
+			"error getting device name");
+}
+
 static void list(void)
 {
 	size_t n;
@@ -207,16 +219,9 @@ static void list(void)
 
 	for(size_t i = 0; i < n; i++){
 		const AudioObjectID id = devices[i];
-
-		const AudioObjectPropertyAddress name_addr = {
-			.mSelector = kAudioDevicePropertyDeviceName,
-			.mScope = kAudioObjectPropertyScopeGlobal,
-			.mElement = kAudioObjectPropertyElementMaster,
-		};
 		char deviceName[64];
-		checkHWError(
-				AudioObjectGetPropertyData(id, &name_addr, 0, NULL, &(UInt32){ sizeof(deviceName) }, deviceName),
-				"error getting device name");
+
+		output_desc(id, deviceName, sizeof(deviceName));
 
 		printf("%s device %d: %s\n", id == output_id_get() ? "*" : "-", id, deviceName);
 	}
