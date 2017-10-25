@@ -286,13 +286,13 @@ static void interactive(void)
 				vol_set(vol);
 				break;
 
+			case 't':
+				toggle();
+				/* fall through */
+
 			case 'r':
 			case 'o':
 				vol = vol_get();
-				break;
-
-			case 't':
-				toggle();
 				break;
 
 			case 'k':
