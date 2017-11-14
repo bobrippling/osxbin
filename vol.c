@@ -231,14 +231,18 @@ static void list(void)
 	free_devices(devices);
 }
 
-static void toggle(void)
+static const char *toggle(bool fatal)
 {
 	const AudioDeviceID id = output_id_get();
 	size_t n;
 	AudioObjectID *devices = list_devices(&n);
 
-	if(n < 2)
-		die("%s: only found a single device", __func__);
+	if(n < 2){
+		if(fatal)
+			die("%s: only found a single device", __func__);
+		else
+			return "only found a single device";
+	}
 
 	for(size_t i = 0; i < n; i++){
 		if(devices[i] == id){
@@ -252,18 +256,28 @@ static void toggle(void)
 	}
 
 	free_devices(devices);
+
+	return NULL;
 }
 
 static void interactive(void)
 {
 	system("stty -echo -icanon");
 
+	const char *msg = "";
 	int vol = vol_get();
 	for(;;){
 		char deviceName[64];
 		output_desc(output_id_get(), deviceName, sizeof(deviceName));
 
-		printf("j/k: %d%% %s%s\r", vol, deviceName, clrtoeol);
+		printf("j/k: %d%% %s%s%s%s%s\r",
+				vol,
+				deviceName,
+				clrtoeol,
+				*msg ? " (" : "",
+				msg,
+				*msg ? ")" : "");
+		msg = "";
 
 		bool done;
 		int ch = interactive_getchar(&done);
@@ -287,7 +301,9 @@ static void interactive(void)
 				break;
 
 			case 't':
-				toggle();
+				msg = toggle(false);
+				if(!msg)
+					msg = "";
 				/* fall through */
 
 			case 'r':
@@ -334,7 +350,7 @@ int main(int argc, const char *argv[])
 		if(!strcmp(argv[1], "-i")){
 			interactive();
 		}else if(is_prefix(argv[1], "toggle")){
-			toggle();
+			toggle(true);
 		}else if(is_prefix(argv[1], "list") || is_prefix(argv[1], "ls")){
 			list();
 
