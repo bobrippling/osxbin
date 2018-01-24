@@ -342,6 +342,17 @@ static int estrtol(const char *str)
 	return vol;
 }
 
+static void show(bool verbose)
+{
+	printf("%d", vol_get());
+	if(verbose){
+		char devname[64];
+		output_desc(output_id_get(), devname, sizeof(devname));
+		printf("%% %s", devname);
+	}
+	putchar('\n');
+}
+
 int main(int argc, const char *argv[])
 {
 	argv0 = argv[0];
@@ -353,6 +364,8 @@ int main(int argc, const char *argv[])
 			toggle(true);
 		}else if(is_prefix(argv[1], "list") || is_prefix(argv[1], "ls")){
 			list();
+		}else if(is_prefix(argv[1], "verbose")){
+			show(true);
 
 		}else if(strchr("+-", argv[1][0])){
 			int direction = argv[1][0] == '+' ? 1 : -1;
@@ -366,7 +379,7 @@ int main(int argc, const char *argv[])
 			vol_set(estrtol(argv[1]));
 		}
 	}else if(argc <= 1){
-		printf("%d\n", vol_get());
+		show(false);
 
 	}else{
 		die("Usage: %s [+... | -... | -i | t[oggle] | l[ist|s] | volume-to-set]\n"
