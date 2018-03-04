@@ -1,0 +1,52 @@
+#!/bin/sh
+
+if test $# -ne 1
+then
+	echo >&2 "Usage: $0 url"
+	exit 2
+fi
+
+url="$1"
+fmts=$(youtube-dl --list-formats "$url" | sed '/^\[/d; /audio only/d' | sed 1d | awk '{print $1 " " $3}')
+
+smallest=9999
+smallest_id=
+largest=0
+largest_id=
+chosen=
+chosen_id=
+
+while read id res
+do
+	sz=${res%x*}
+
+	if test $sz -lt $smallest
+	then
+		smallest=$sz
+		smallest_id=$id
+	fi
+
+	if test $sz -gt $largest
+	then
+		largest=$sz
+		largest_id=$id
+	fi
+
+	if test -z "$chosen" || (test $sz -le 1280 && test $sz -ge 640)
+	then
+		chosen=$sz
+		chosen_id=$id
+	fi
+done <<!
+$fmts
+!
+
+echo >&2 "smallest=$smallest ($smallest_id) largest=$largest ($largest_id) chosen=$chosen ($chosen_id)"
+
+if test -z "$chosen_id"
+then
+	echo >&2 "$url: no suitable size"
+	exit 1
+fi
+
+youtube-dl -f "$chosen_id" "$url"
