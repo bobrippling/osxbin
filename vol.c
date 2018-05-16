@@ -382,7 +382,7 @@ int main(int argc, const char *argv[])
 		show(false);
 
 	}else{
-		die("Usage: %s [+... | -... | -i | t[oggle] | l[ist|s] | volume-to-set]\n"
+		die("Usage: %s [+... | -... | -i | t[oggle] | l[ist|s] | v[erbose] | volume-to-set]\n"
 				"  e.g. %s +++\n"
 				"       %s -20\n"
 				"       %s 31\n"
