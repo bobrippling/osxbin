@@ -331,13 +331,28 @@ static bool is_prefix(const char *pre, const char *full)
 	return pre[0] && !strncmp(pre, full, strlen(pre));
 }
 
+static noreturn void usage(void)
+{
+	die("Usage: %s [+... | -... | -i | t[oggle] | l[ist|s] | v[erbose] | volume-to-set]\n"
+			"  e.g. %s +++\n"
+			"       %s -20\n"
+			"       %s 31\n"
+			,
+			argv0,
+			argv0,
+			argv0,
+			argv0);
+}
+
 static int estrtol(const char *str)
 {
 	char *end;
 	int vol = strtol(str, &end, 0);
 
-	if(*end)
-		die("%s: invalid number '%s'", argv0, str);
+	if(*end){
+		fprintf(stderr, "%s: invalid number '%s'\n", argv0, str);
+		usage();
+	}
 
 	return vol;
 }
@@ -382,15 +397,7 @@ int main(int argc, const char *argv[])
 		show(false);
 
 	}else{
-		die("Usage: %s [+... | -... | -i | t[oggle] | l[ist|s] | v[erbose] | volume-to-set]\n"
-				"  e.g. %s +++\n"
-				"       %s -20\n"
-				"       %s 31\n"
-				,
-				argv[0],
-				argv[0],
-				argv[0],
-				argv[0]);
+		usage();
 	}
 
 	return 0;
