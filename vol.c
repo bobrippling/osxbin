@@ -246,11 +246,11 @@ static const char *toggle(bool fatal)
 
 	for(size_t i = 0; i < n; i++){
 		if(devices[i] == id){
-			if(i + 1 == n){
-				output_id_set(devices[0]);
-			}else{
-				output_id_set(devices[i + 1]);
-			}
+			size_t next = (i + 1) % n;
+			do{
+				output_id_set(devices[next]);
+				next = (next + 1) % n;
+			}while(output_id_get() == id && next != i);
 			break;
 		}
 	}
