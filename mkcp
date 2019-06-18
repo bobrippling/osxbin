@@ -40,7 +40,7 @@ sub mkdir_p
 }
 
 if(@ARGV < 2){
-	print STDERR "Usage: $0 files... dir";
+	print STDERR "Usage: $0 files... dir\n";
 	exit 1;
 }
 
