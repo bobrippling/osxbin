@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if test $# -ne 0
+then
+  echo >&2 "Usage: $0"
+  exit 2
+fi
+
+log show --style syslog --predicate 'process == "loginwindow"' --debug --info \
+      | grep "LUIAuthenticationServiceProvider activate]_block_invoke" \
+      | perl -pe 's/ local.*(<<<<<<<|>>>>>>>).*/ $1/'
