@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# modified from https://github.com/mlbright/dotfiles/blob/master/scripts/vnc.sh
+
+if test -z "$VNC_PASSWORD"
+then
+	echo "Missing \$VNC_PASSWORD environment variable" >&2
+	exit 2
+fi
+
+set -ex
+
+# set privileges
+/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -allowAccessFor -allUsers -privs -all
+
+# allow VNC clients:
+/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -clientopts -setvnclegacy -vnclegacy yes
+
+# set VNC password:
+/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -clientopts -setvncpw -vncpw "$VNC_PASSWORD"
+
+# restart service:
+/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -restart -agent -console
