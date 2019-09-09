@@ -139,7 +139,8 @@ static int vol_get_channel(AudioDeviceID id, AudioObjectPropertyElement channel)
 			0, NULL,
 			&len, &volume);
 
-	check_hw_error(result, "error getting volume");
+	if(has_hw_error(result))
+		return -1;
 
 	return volume * 100;
 }
@@ -152,14 +153,25 @@ static void vol_set(int new)
 	vol_set_channel(id, RIGHT_CHANNEL, new);
 }
 
-static int vol_get(void)
+static int vol_get_maybe_error(void)
 {
 	AudioDeviceID id = output_id_get();
 
 	int left = vol_get_channel(id, LEFT_CHANNEL);
 	int right = vol_get_channel(id, RIGHT_CHANNEL);
 
+	if(left == -1 || right == -1)
+		return -1;
+
 	return (left + right) / 2;
+}
+
+static int vol_get(void)
+{
+	int v = vol_get_maybe_error();
+	if(v == -1)
+		die("error getting volume");
+	return v;
 }
 
 static int interactive_getchar(bool *const done)
@@ -268,10 +280,15 @@ static void interactive(void)
 	system("stty -echo -icanon");
 
 	const char *msg = "";
-	int vol = vol_get();
+	int vol = vol_get_maybe_error();
 	for(;;){
 		char devname[64];
 		output_desc(output_id_get(), devname, sizeof(devname));
+
+		if(vol == -1){
+			vol = 0;
+			msg = "error getting volume";
+		}
 
 		printf("j/k: %d%% %s%s%s%s%s\r",
 				vol,
@@ -311,7 +328,7 @@ static void interactive(void)
 
 			case 'r':
 			case 'o':
-				vol = vol_get();
+				vol = vol_get_maybe_error();
 				break;
 
 			case 'k':
