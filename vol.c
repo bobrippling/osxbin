@@ -24,12 +24,15 @@ static noreturn void die(const char *fmt, ...)
 	exit(1);
 }
 
+static int has_hw_error(OSStatus result)
+{
+	return result != kAudioHardwareNoError;
+}
+
 static void check_hw_error(OSStatus result, const char *desc)
 {
-	if(result == kAudioHardwareNoError)
-		return;
-
-	die("%s: %d", desc, (int)result);
+	if(has_hw_error(result))
+		die("%s: %d", desc, (int)result);
 }
 
 static AudioDeviceID output_id_get(void)
