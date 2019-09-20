@@ -2,10 +2,27 @@
 
 # modified from https://github.com/mlbright/dotfiles/blob/master/scripts/vnc.sh
 
+read_vnc_pw(){
+  printf 'VNC_PASSWORD: '
+
+  trap 'stty echo' EXIT
+  stty -echo || exit $?
+
+  read VNC_PASSWORD || exit $?
+
+  stty +echo
+  trap - EXIT
+}
+
 if test -z "$VNC_PASSWORD"
 then
-	echo "Missing \$VNC_PASSWORD environment variable" >&2
-	exit 2
+  if test -t 0
+  then
+    read_vnc_pw
+  else
+    echo "Missing \$VNC_PASSWORD environment variable" >&2
+    exit 2
+  fi
 fi
 
 set -ex
